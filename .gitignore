@@ -1,0 +1,11 @@
+CortexM3/*
+Export/*
+*.log
+Generated_Source/*
+codegentemp/*
+*.Nat
+*.Termina
+Fans_of_Life.*
+!Fans_of_Life.cyprj
+!Fans_of_Life.cydwr
+*.html
