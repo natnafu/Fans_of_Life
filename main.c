@@ -10,22 +10,25 @@
  * ========================================
 */
 
-
 /* KNOWN BUGS/TODOS
     1) If you kill a fan before the validation is complete, that command is ignored
     2) Spinning a fan backwards doesn't work all the time (possibly detecting a stop while changing directions?)
     3) Fans sometimes take time to spin up (why validator is needed, possible to fix?)
     4) Add timeout functionality (Counter with ISR, custom count?)
+    5) Add LED support for MASTER to indicate status to user
 */
-
-#include "project.h"
 
 #include "fan.h"
 #include "physical.h"
+#include "project.h"
 #include "rs485.h"
 
 //#define IS_SLAVE
 #define IS_MASTER
+
+#if (defined IS_SLAVE && defined IS_MASTER)
+#error  Can not define both master and slave   
+#endif
 
 // Master Grid for controlling the whole system.
 // Each index is a fan where 1 = live and 0 = dead.
@@ -34,12 +37,10 @@ uint32_t master_grid[NUM_ROWS][NUM_COLS];
 /* 
 Each cell contains 4 rows of 8 fans (32 total fans).
 Fans are physically indexed like so:
-
 0,  ... , 7
 8,  ... , 15
 16, ... , 23
 24, ... , 31
-
 Fan spinning states are stored in a single uint32_t, one bit per fan
 Bit 31 = fan 31, bit 0 = fan 0
 1 = fan spinning, 0 = fan stopped
@@ -81,10 +82,8 @@ void master_write_grid(uint32_t grid[NUM_ROWS][NUM_COLS]) {
 // Reads back single cell state
 uint32_t master_read_cell(uint8_t cell) {
     rs485_tx(cell, UART_READ, 0);
-    timer_start(5000);
-    while (UART_GetRxBufferSize() != 6) {
-        if (!timer_read()) return 0; // timeout
-    }
+    while (UART_GetRxBufferSize() != 6) CyDelayUs(1); // TODO: add timeout
+    // Ignore first two bytes for now
     UART_ReadRxData();
     UART_ReadRxData();
     uint32_t read_state = 0;
@@ -115,54 +114,47 @@ void master_read_grid() {
 int main(void)
 {
     CyGlobalIntEnable; /* Enable global interrupts. */
-    UART_Start();
-    
-    
+        
+#ifdef IS_MASTER
+    // Set UART RX
+    uint8_t uart_address = MASTER_ADDRESS;
+#endif // MASTER
+
 #ifdef IS_SLAVE
+    // Set UART RX Address 
+    uint8 uart_address = (Pin_A0_Read() << 0) |
+                         (Pin_A1_Read() << 1) |
+                         (Pin_A2_Read() << 2);
     // Holds all the states of the fans
     uint32_t ctrl_state = 0;  // last commanded state
     uint32_t curr_state = 0;  // current state
     uint32_t old_state = 0;   // previous state
+
+    // Init fan states
     gpiox_init();
     fan_set_state(0, 1);
-    uint8_t uart_address = (Pin_A0_Read() << 0) |
-                   (Pin_A1_Read() << 1) |
-                   (Pin_A2_Read() << 2);
-    uint8_t rx_buf_size = 0;
 #endif // SLAVE
-    
-#ifdef IS_MASTER
-    // Turn off all fans
-    CyDelay(1000); // let cells init
-    master_write_all(0);
-    CyDelay(1000); // TODO: read cell states and block until all read 0 or timeout
-#endif // MASTER
 
     for(;;)
     {
-#ifdef IS_SLAVE    
-        rx_buf_size = UART_GetRxBufferSize();
-        
+#ifdef IS_SLAVE           
         // Check if buffer is full
-        if (rx_buf_size == 6) {
-            // Process only if address matches
-            if (UART_ReadRxData() == uart_address) {
-                if (UART_ReadRxData() == UART_READ) {
-                    // Send back current state if READ
-                    rs485_tx(uart_address, UART_READ, curr_state);
-                } else { 
-                    // Set control state if WRITE
-                    ctrl_state  = ((uint32_t) UART_ReadRxData() << 24);
-                    ctrl_state |= ((uint32_t) UART_ReadRxData() << 16);
-                    ctrl_state |= ((uint32_t) UART_ReadRxData() <<  8);
-                    ctrl_state |= ((uint32_t) UART_ReadRxData() <<  0);
-                }               
-            }            
+        if (UART_GetRxBufferSize() == UART_RX_BUFFER_SIZE) {
+            if (UART_ReadRxData() == UART_READ) {
+                // Send back current state if READ
+                rs485_tx(uart_address, UART_READ, curr_state);
+            } else { 
+                // Set control state if WRITE
+                ctrl_state  = ((uint32_t) UART_ReadRxData() << 24);
+                ctrl_state |= ((uint32_t) UART_ReadRxData() << 16);
+                ctrl_state |= ((uint32_t) UART_ReadRxData() <<  8);
+                ctrl_state |= ((uint32_t) UART_ReadRxData() <<  0);
+            }                        
             // Clear RX buffer after processing data
             UART_ClearRxBuffer();       
-        } else if (rx_buf_size && timer_read()) {
-        
         }
+        
+        // Edit fan state based on user input (curr_state) and master (ctrl_state)
         curr_state = fan_get_state();   // Get current state
         if (curr_state != old_state) {
             // Handles human intervention

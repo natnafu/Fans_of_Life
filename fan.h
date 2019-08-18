@@ -48,13 +48,8 @@ uint32_t fan_read_all(void) {
 }
  
 // Clears status registers, wait for them to reset, then return current fan state
-#define DEBOUNCE 1 // not actually a debounce...
 uint32_t fan_get_state() {
-    uint32_t count = 0;
-    for (uint32_t i = 0; i < DEBOUNCE; i++) {
-        fan_read_all(); // reset status registers
-        CyDelay(100 / DEBOUNCE);   // wait for tachs to trigger
-    }
+    fan_read_all(); // reset status registers
     return fan_read_all();
 }
 
