@@ -26,9 +26,15 @@
 //#define IS_SLAVE
 #define IS_MASTER
 
+// Config error checking
 #if (defined IS_SLAVE && defined IS_MASTER)
 #error  Can not define both master and slave   
+#elif (defined IS_MASTER && UART_RX_HW_ADDRESS1 != 8)
+#error  incorrect master UART hardware address
+#elif (defined IS_SLAVE && UART_RX_HW_ADDRESS1 != 0)
+#error  incorrect slave UART hardware address
 #endif
+
 
 // Master Grid for controlling the whole system.
 // Each index is a fan where 1 = live and 0 = dead.
@@ -82,9 +88,9 @@ void master_write_grid(uint32_t grid[NUM_ROWS][NUM_COLS]) {
 // Reads back single cell state
 uint32_t master_read_cell(uint8_t cell) {
     rs485_tx(cell, UART_READ, 0);
-    while (UART_GetRxBufferSize() != 6) CyDelayUs(1); // TODO: add timeout
-    // Ignore first two bytes for now
-    UART_ReadRxData();
+    while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE); // TODO: add timeout
+    // Ignore first R/W bytes for now
+    //UART_ReadRxData();
     UART_ReadRxData();
     uint32_t read_state = 0;
     read_state  = ((uint32_t) UART_ReadRxData() << 24);
@@ -135,12 +141,24 @@ int main(void)
     fan_set_state(0, 1);
 #endif // SLAVE
 
+    UART_SetRxAddress1(uart_address);  // Doesn't seem to work in hardware address mode
+    UART_SetRxAddress2(uart_address);  // Doesn't seem to work in hardware address mode
+    UART_Start();
+
+#ifdef IS_MASTER
+    //TESTING
+    //uint8_t test = master_read_cell(0);
+    //while(test);
+#endif
+
     for(;;)
     {
 #ifdef IS_SLAVE           
         // Check if buffer is full
         if (UART_GetRxBufferSize() == UART_RX_BUFFER_SIZE) {
             if (UART_ReadRxData() == UART_READ) {
+                //TESTING
+                //rs485_tx(MASTER_ADDRESS, UART_READ, 0xBBBB);
                 // Send back current state if READ
                 rs485_tx(uart_address, UART_READ, curr_state);
             } else { 
@@ -171,6 +189,7 @@ int main(void)
 #endif // SLAVE
 
 #ifdef IS_MASTER
+    /*
         uint32_t state_test;
         for (uint8_t cell = 0; cell < NUM_CELLS; cell++) {
             state_test = 0;
@@ -181,6 +200,7 @@ int main(void)
                 CyDelay(1);   
             }
         }
+    */
 #endif
     }
 }
