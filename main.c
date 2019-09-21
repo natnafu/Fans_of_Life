@@ -36,23 +36,6 @@
 #error  incorrect slave UART hardware address
 #endif
 
-
-// Master Grid for controlling the whole system.
-// Each index is a fan where 1 = live and 0 = dead.
-uint32_t master_grid[NUM_ROWS][NUM_COLS];
-
-/* 
-Each cell contains 4 rows of 8 fans (32 total fans).
-Fans are physically indexed like so:
-0,  ... , 7
-8,  ... , 15
-16, ... , 23
-24, ... , 31
-Fan spinning states are stored in a single uint32_t, one bit per fan
-Bit 31 = fan 31, bit 0 = fan 0
-1 = fan spinning, 0 = fan stopped
-*/
-
 int main(void)
 {
     CyGlobalIntEnable; /* Enable global interrupts. */
