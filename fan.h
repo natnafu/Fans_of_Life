@@ -50,6 +50,7 @@ uint32_t fan_read_all(void) {
 // Clears status registers, wait for them to reset, then return current fan state
 uint32_t fan_get_state() {
     fan_read_all(); // reset status registers
+    CyDelay(100); // let 
     return fan_read_all();
 }
 
