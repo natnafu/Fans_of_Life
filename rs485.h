@@ -43,7 +43,7 @@ void rs485_tx(uint8_t addr, uint8_t read_write, uint32_t state) {
     UART_SetTxAddressMode(UART_SET_MARK);
     UART_PutArray(tx_data, PACKET_SIZE);
     UART_SetTxAddressMode(UART_SET_SPACE);
-    CyDelay(100); // slow down comms
+    //CyDelay(100); // slow down comms
 /*    
     UART_PutChar(addr);
     UART_PutChar(read_write);

@@ -36,20 +36,13 @@
 #error  incorrect slave UART hardware address
 #endif
 
+uint8_t volatile rx_data_ready = 0;
+
 int main(void)
 {
-    CyGlobalIntEnable; /* Enable global interrupts. */
-        
-#ifdef IS_MASTER
-    // Set UART RX
-    uint8_t uart_address = MASTER_ADDRESS;
-#endif // MASTER
+    CyGlobalIntEnable; /* Enable global interrupts. */  
 
 #ifdef IS_SLAVE
-    // Set UART RX Address 
-    uint8 uart_address = (Pin_A0_Read() << 0) |
-                         (Pin_A1_Read() << 1) |
-                         (Pin_A2_Read() << 2);
     // Holds all the states of the fans
     uint32_t ctrl_state = 0;  // last commanded state
     uint32_t curr_state = 0;  // current state
@@ -57,16 +50,11 @@ int main(void)
 
     // Init fan states
     gpiox_init();
-    fan_set_state(0, 1);
+    fan_set_state(0, 0);
 #endif // SLAVE
 
-    UART_SetRxAddress1(uart_address);  // Doesn't seem to work in hardware address mode
-    UART_SetRxAddress2(uart_address);  // Doesn't seem to work in hardware address mode
     UART_Start();
-
-#ifdef IS_MASTER
-    //master_write_all(0); // start will a clean state
-#endif
+    uint8_t uart_address = UART_RX_HW_ADDRESS1;
 
     for(;;)
     {
@@ -83,9 +71,10 @@ int main(void)
                               ((uint32_t) UART_ReadRxData() << 16) |
                               ((uint32_t) UART_ReadRxData() <<  8) |
                               ((uint32_t) UART_ReadRxData() <<  0);
+                rs485_tx(MASTER_ADDRESS, UART_WRITE, ctrl_state);
             }                        
             // Clear RX buffer after processing data
-            UART_ClearRxBuffer();       
+            //UART_ClearRxBuffer();       
         }
         
         // Edit fan states based on user input (curr_state) and master (ctrl_state)
@@ -97,7 +86,7 @@ int main(void)
         }
         else if (curr_state != ctrl_state) {
             // Handles commands from master
-            fan_set_state(ctrl_state, 1); // validate or spindown will trigger a human input
+            fan_set_state(ctrl_state, 0); // validate or spindown will trigger a human input
             curr_state = ctrl_state;
         }
         old_state = curr_state;   

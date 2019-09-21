@@ -14,10 +14,29 @@
 #include "rs485.h"
     
 // Writes to a singe cell
-void master_write_cell(uint32_t cell, uint32_t state) {
+uint32_t master_write_cell(uint32_t cell, uint32_t state) {
     rs485_tx(cell, UART_WRITE, state);
+    while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE);
+    UART_ReadRxData();  // ignore R/W byte
+    // Set control state if WRITE
+    return ((uint32_t) UART_ReadRxData() << 24) |
+           ((uint32_t) UART_ReadRxData() << 16) |
+           ((uint32_t) UART_ReadRxData() <<  8) |
+           ((uint32_t) UART_ReadRxData() <<  0);
 }
-    
+   
+// Reads back single cell state
+uint32_t master_read_cell(uint8_t cell) {
+    rs485_tx(cell, UART_READ, 0);
+    while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE); // TODO: add timeout 
+    UART_ReadRxData();  // Ignore first R/W byte for now
+    return ((uint32_t) UART_ReadRxData() << 24) |
+           ((uint32_t) UART_ReadRxData() << 16) |
+           ((uint32_t) UART_ReadRxData() <<  8) |
+           ((uint32_t) UART_ReadRxData() <<  0);
+
+}
+
 // Writes all cells to the same state
 void master_write_all(uint32_t state) {
     for (uint8_t i = 0; i < NUM_CELLS; i++) {
@@ -42,18 +61,6 @@ void master_write_grid(uint32_t grid[NUM_ROWS][NUM_COLS]) {
     }
 }
 
-// Reads back single cell state
-uint32_t master_read_cell(uint8_t cell) {
-    rs485_tx(cell, UART_READ, 0);
-    while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE); // TODO: add timeout 
-    UART_ReadRxData();  // Ignore first R/W byte for now
-    uint32_t read_state = 0;
-    read_state  = ((uint32_t) UART_ReadRxData() << 24);
-    read_state |= ((uint32_t) UART_ReadRxData() << 16);
-    read_state |= ((uint32_t) UART_ReadRxData() <<  8);
-    read_state |= ((uint32_t) UART_ReadRxData() <<  0);
-    return read_state;   
-}
 /*
 // Updates global master_grid based on cell states
 void master_read_grid() {
