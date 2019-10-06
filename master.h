@@ -13,16 +13,11 @@
 #include "project.h"
 #include "rs485.h"
     
-// Writes to a singe cell
-uint32_t master_write_cell(uint32_t cell, uint32_t state) {
+// Writes to a singe cell, blocks until response received
+void master_write_cell(uint32_t cell, uint32_t state) {
     rs485_tx(cell, UART_WRITE, state);
-    while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE);
-    UART_ReadRxData();  // ignore R/W byte
-    // Set control state if WRITE
-    return ((uint32_t) UART_ReadRxData() << 24) |
-           ((uint32_t) UART_ReadRxData() << 16) |
-           ((uint32_t) UART_ReadRxData() <<  8) |
-           ((uint32_t) UART_ReadRxData() <<  0);
+    while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE); // TODO: add timeout 
+    UART_ClearRxBuffer();
 }
    
 // Reads back single cell state
@@ -30,11 +25,12 @@ uint32_t master_read_cell(uint8_t cell) {
     rs485_tx(cell, UART_READ, 0);
     while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE); // TODO: add timeout 
     UART_ReadRxData();  // Ignore first R/W byte for now
-    return ((uint32_t) UART_ReadRxData() << 24) |
-           ((uint32_t) UART_ReadRxData() << 16) |
-           ((uint32_t) UART_ReadRxData() <<  8) |
-           ((uint32_t) UART_ReadRxData() <<  0);
-
+    uint32_t response = ((uint32_t) UART_ReadRxData() << 24) |
+                        ((uint32_t) UART_ReadRxData() << 16) |
+                        ((uint32_t) UART_ReadRxData() <<  8) |
+                        ((uint32_t) UART_ReadRxData() <<  0);
+    UART_ClearRxBuffer();
+    return response;
 }
 
 // Writes all cells to the same state

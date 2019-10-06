@@ -44,73 +44,67 @@ int main(void)
 
 #ifdef IS_SLAVE
     // Holds all the states of the fans
-    uint32_t ctrl_state = 0;  // last commanded state
-    uint32_t curr_state = 0;  // current state
+    uint32_t ctrl_state = 0;  // commanded state
     uint32_t old_state = 0;   // previous state
+    uint32_t curr_state = 0;  // current state
 
     // Init fan states
     gpiox_init();
-    fan_set_state(0, 0);
+    fan_set_state(0, 0); // NAT set to validate
+    //curr_state = fan_read_all();
 #endif // SLAVE
 
     UART_Start();
-    uint8_t uart_address = UART_RX_HW_ADDRESS1;
 
     for(;;)
     {
 #ifdef IS_SLAVE           
-        // Process data if RX buffer full
+        // Grab current state
+        curr_state = fan_get_state();
+        
+        // Check for human intervention
+        if (curr_state != old_state) {
+            fan_set_state(curr_state, 0);  // don't validate since human input has no spindown
+        }
+        
+        // Check for commands
         if (UART_GetRxBufferSize() == UART_RX_BUFFER_SIZE) {
             uint8 rx_cmd = UART_ReadRxData();
             if (rx_cmd == UART_READ) {
-                // Send back current state if READ
                 rs485_tx(MASTER_ADDRESS, UART_READ, curr_state);
             } else if (rx_cmd == UART_WRITE) { 
-                // Set control state if WRITE
                 ctrl_state  = ((uint32_t) UART_ReadRxData() << 24) |
                               ((uint32_t) UART_ReadRxData() << 16) |
                               ((uint32_t) UART_ReadRxData() <<  8) |
                               ((uint32_t) UART_ReadRxData() <<  0);
-                rs485_tx(MASTER_ADDRESS, UART_WRITE, ctrl_state);
+                fan_set_state(ctrl_state, 0); // NAT: change this to validating
+                curr_state = ctrl_state;
+                rs485_tx(MASTER_ADDRESS, UART_WRITE, curr_state);
             }                        
             // Clear RX buffer after processing data
-            //UART_ClearRxBuffer();       
+            UART_ClearRxBuffer();       
         }
-        
-        // Edit fan states based on user input (curr_state) and master (ctrl_state)
-        curr_state = fan_get_state();   // Get current state
-        if (curr_state != old_state) {
-            // Handles human intervention (priority over master)
-            fan_set_state(curr_state, 0);  // don't validate since human input has no spindown
-            ctrl_state = curr_state;       // make sure ctrl state doesnt take effect next loop
-        }
-        else if (curr_state != ctrl_state) {
-            // Handles commands from master
-            fan_set_state(ctrl_state, 0); // validate or spindown will trigger a human input
-            curr_state = ctrl_state;
-        }
+       
         old_state = curr_state;   
-
 #endif // SLAVE
 
 #ifdef IS_MASTER
-    
+        master_write_cell(0, 0);
+        CyDelay(10000);
         uint32_t state_test;
         //for (uint8_t cell = 0; cell < NUM_CELLS; cell++) {
-        for (uint8_t cell = 0; cell < NUM_CELLS; cell++) {
+        for (uint8_t cell = 0; cell < 1; cell++) {
             state_test = 0;
             for (uint8_t fan = 0; fan < FANS_PER_CELL; fan++) {
                 state_test |= (1 << fan);
                 master_write_cell(cell, state_test);
-                uint32_t read_back = master_read_cell(cell);
-                while (read_back != state_test) {
-                    CyDelay(100);
-                    read_back = master_read_cell(cell);
-                    
-                }; //TODO add timeout  
+                CyDelay(6000);
+                //uint32_t read_back = master_read_cell(cell);
+                //while (read_back != state_test) {
+                    //TODO add timeout
+                //}   
             }
-        }
-    
+        }  
 #endif
     }
 }
