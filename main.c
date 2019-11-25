@@ -24,8 +24,8 @@
 #include "master.h"
 #include "rs485.h"
 
-//#define IS_SLAVE
-#define IS_MASTER
+#define IS_SLAVE
+//#define IS_MASTER
 
 // Config error checking
 #if (defined IS_SLAVE && defined IS_MASTER)
@@ -50,6 +50,8 @@ int main(void)
 
     // Init fan states
     gpiox_init();
+    fan_set_state(UINT32_MAX,0);
+    CyDelay(1000);
     fan_set_state(0, 0); // NAT set to validate
     //curr_state = fan_read_all();
 #endif // SLAVE
@@ -58,7 +60,14 @@ int main(void)
 
     for(;;)
     {
-#ifdef IS_SLAVE           
+#ifdef IS_SLAVE   
+    
+        // DEBUG:
+        //fan_set_state(UINT32_MAX,0);
+        //CyDelay(1000);
+        //fan_set_state(0,0);
+        CyDelay(1000);
+        /*
         // Grab current state
         curr_state = fan_get_state();
         
@@ -86,6 +95,7 @@ int main(void)
         }
        
         old_state = curr_state;   
+        */
 #endif // SLAVE
 
 #ifdef IS_MASTER
