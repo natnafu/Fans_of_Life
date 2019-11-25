@@ -24,8 +24,8 @@
 #include "master.h"
 #include "rs485.h"
 
-//#define IS_SLAVE
-#define IS_MASTER
+#define IS_SLAVE
+//#define IS_MASTER
 
 // Config error checking
 #if (defined IS_SLAVE && defined IS_MASTER)
@@ -50,15 +50,14 @@ int main(void)
 
     // Init fan states
     gpiox_init();
-    fan_set_state(0, 0); // NAT set to validate
-    //curr_state = fan_read_all();
+    fan_set_state(0, 1); // NAT set to validate
 #endif // SLAVE
 
     UART_Start();
 
     for(;;)
     {
-#ifdef IS_SLAVE           
+#ifdef IS_SLAVE
         // Grab current state
         curr_state = fan_get_state();
         
