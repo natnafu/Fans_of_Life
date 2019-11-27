@@ -13,6 +13,7 @@
 #include "project.h"
 #include "gpiox.h"
 #include "physical.h"
+#include "stopwatch.h"
 
 // Reads status registers and returns the current state of the fans
 uint32_t fan_read_all(void) {
@@ -34,19 +35,19 @@ uint32_t fan_get_state() {
     return fan_read_all();
 }
 
-// Starts/stops fans to match `state`
-// `validate` can be used if system should pause until actual state matches set state
-void fan_set_state(uint32_t state, uint8_t validate) {
-    //TODO: make a control translation array to get rid of this bit shifting
+// Starts/stops fans to match `state`.
+// Will block wait for `validate_ms` before giving up (timeout).
+void fan_set_state(uint32_t state, uint32_t validate_ms) {
     gpiox_send(GPIOXA, ADDR_PORTA, ((uint8_t)(state >> 00)), ((uint8_t)(state >> 8)));
     gpiox_send(GPIOXB, ADDR_PORTA, ((uint8_t)(state >> 16)), ((uint8_t)(state >> 24)));
     
     // Validate new fan state before proceeding
-    // TODO: Add timeout
-    if (validate) {
-        uint32_t new_state = fan_get_state(); 
+    if (validate_ms) {
+        uint32_t val_timer = stopwatch_start();
+        uint32_t new_state = fan_get_state();
         while (new_state != state) {
-            new_state = fan_get_state();    
+            if (stopwatch_elapsed_ms(val_timer) >= validate_ms) break;
+            new_state = fan_get_state();
         }
     }
 }

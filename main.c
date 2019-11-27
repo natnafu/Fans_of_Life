@@ -23,6 +23,7 @@
 #include "project.h"
 #include "master.h"
 #include "rs485.h"
+#include "stopwatch.h"
 
 #define IS_SLAVE
 //#define IS_MASTER
@@ -36,35 +37,22 @@
 #error  incorrect slave UART hardware address
 #endif
 
-// Returns the current timer count
-uint32_t stopwatch_start(void) {
-    return Timer_ReadCounter();
-}
-// Returns the difference in ms between the given and current count (assumes 1kHz count clock)
-uint32_t stopwatch_elapsed_ms(uint32_t time_ms) {
-    uint32_t curr_time_ms = Timer_ReadCounter();
-    if (time_ms > curr_time_ms) return (time_ms - curr_time_ms);
-    // Handle counter rollover
-    // Subtraction has to happen before the addition to prevent another rollover
-    //uint32_t rollover_time_ms = Timer_ReadPeriod() - curr_time_ms;
-    return (time_ms + (Timer_ReadPeriod() - curr_time_ms));
-}
-
 int main(void)
 {
-    CyGlobalIntEnable;  // Enable global interrupts.
-    Timer_Start();      // Used for stopwatch timers
-    UART_Start();       // Used for RS485 comms
+    CyGlobalIntEnable;      // Enable global interrupts.
+    Timer_Start();          // Used for stopwatch timers
+    UART_Start();           // Used for RS485 comms
+    uint32_t timer_comm;    // RS485 communication timer
 
 #ifdef IS_SLAVE
     // Holds all the states of the fans
     uint32_t ctrl_state = 0;  // commanded state
-    uint32_t old_state = 0;   // previous state
+    uint32_t old_state  = 0;  // previous state
     uint32_t curr_state = 0;  // current state
 
-    // Init fan states
+    // Init fan states to 0
     gpiox_init();
-    fan_set_state(0, 1);    // Set all to 0 by default
+    fan_set_state(0, 5000);
 #endif // SLAVE
 
     for(;;)
