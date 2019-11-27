@@ -16,7 +16,8 @@
 // Writes to a singe cell, blocks until response received
 void master_write_cell(uint32_t cell, uint32_t state) {
     rs485_tx(cell, UART_WRITE, state);
-    while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE); // TODO: add timeout 
+    //while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE); // TODO: add timeout
+    CyDelay(10);
     UART_ClearRxBuffer();
 }
    

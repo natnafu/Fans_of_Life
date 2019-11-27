@@ -36,11 +36,23 @@
 #error  incorrect slave UART hardware address
 #endif
 
-uint8_t volatile rx_data_ready = 0;
+// Setup timer to count down from time_ms to 0 (one-shot mode)
+void start_timer_ms(uint16_t time_ms) {
+    Timer_Stop();                   // must stop timer before updating counter
+    Timer_WriteCounter(time_ms);    // Timer clock = 1kHz, 1ms per count
+    Timer_Enable();
+}
+// Check if timer has reached 0 (one-shot mode)
+uint8_t is_timer_done() {
+    if (Timer_ReadCounter() == 0) return 1;
+    else return 0;
+}
 
 int main(void)
 {
-    CyGlobalIntEnable; /* Enable global interrupts. */  
+    CyGlobalIntEnable;  // Enable global interrupts.
+    Timer_Init();       // Only init timer, do not start
+    UART_Start();
 
 #ifdef IS_SLAVE
     // Holds all the states of the fans
@@ -50,21 +62,20 @@ int main(void)
 
     // Init fan states
     gpiox_init();
-    fan_set_state(0, 1); // NAT set to validate
+    fan_set_state(0, 1);    // Set all to 0 by default
 #endif // SLAVE
-
-    UART_Start();
 
     for(;;)
     {
+        
 #ifdef IS_SLAVE
         // Grab current state
         curr_state = fan_get_state();
         
         // Check for human intervention
-        if (curr_state != old_state) {
-            fan_set_state(curr_state, 0);  // don't validate since human input has no spindown
-        }
+//        if (curr_state != old_state) {
+//            fan_set_state(curr_state, 0);  // don't validate since human input has no spindown
+//        }
         
         // Check for commands
         if (UART_GetRxBufferSize() == UART_RX_BUFFER_SIZE) {
@@ -88,16 +99,17 @@ int main(void)
 #endif // SLAVE
 
 #ifdef IS_MASTER
-        master_write_cell(0, 0);
-        CyDelay(10000);
+        CyDelay(5000);
+        master_write_all(0);
+        CyDelay(5000);
         uint32_t state_test;
-        //for (uint8_t cell = 0; cell < NUM_CELLS; cell++) {
-        for (uint8_t cell = 0; cell < 1; cell++) {
+        for (uint8_t cell = 0; cell < NUM_CELLS; cell++) {
+//        for (uint8_t cell = 0; cell < 1; cell++) {
             state_test = 0;
             for (uint8_t fan = 0; fan < FANS_PER_CELL; fan++) {
                 state_test |= (1 << fan);
                 master_write_cell(cell, state_test);
-                CyDelay(6000);
+                CyDelay(100);
                 //uint32_t read_back = master_read_cell(cell);
                 //while (read_back != state_test) {
                     //TODO add timeout
