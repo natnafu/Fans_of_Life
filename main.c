@@ -36,23 +36,25 @@
 #error  incorrect slave UART hardware address
 #endif
 
-// Setup timer to count down from time_ms to 0 (one-shot mode)
-void start_timer_ms(uint16_t time_ms) {
-    Timer_Stop();                   // must stop timer before updating counter
-    Timer_WriteCounter(time_ms);    // Timer clock = 1kHz, 1ms per count
-    Timer_Enable();
+// Returns the current timer count
+uint32_t stopwatch_start(void) {
+    return Timer_ReadCounter();
 }
-// Check if timer has reached 0 (one-shot mode)
-uint8_t is_timer_done() {
-    if (Timer_ReadCounter() == 0) return 1;
-    else return 0;
+// Returns the difference in ms between the given and current count (assumes 1kHz count clock)
+uint32_t stopwatch_elapsed_ms(uint32_t time_ms) {
+    uint32_t curr_time_ms = Timer_ReadCounter();
+    if (time_ms > curr_time_ms) return (time_ms - curr_time_ms);
+    // Handle counter rollover
+    // Subtraction has to happen before the addition to prevent another rollover
+    //uint32_t rollover_time_ms = Timer_ReadPeriod() - curr_time_ms;
+    return (time_ms + (Timer_ReadPeriod() - curr_time_ms));
 }
 
 int main(void)
 {
     CyGlobalIntEnable;  // Enable global interrupts.
-    Timer_Init();       // Only init timer, do not start
-    UART_Start();
+    Timer_Start();      // Used for stopwatch timers
+    UART_Start();       // Used for RS485 comms
 
 #ifdef IS_SLAVE
     // Holds all the states of the fans
@@ -67,7 +69,6 @@ int main(void)
 
     for(;;)
     {
-        
 #ifdef IS_SLAVE
         // Grab current state
         curr_state = fan_get_state();
