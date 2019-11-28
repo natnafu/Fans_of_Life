@@ -39,19 +39,9 @@ void rs485_tx(uint8_t addr, uint8_t read_write, uint32_t state) {
         ((uint8_t) (state >>  8)),
         ((uint8_t) (state >>  0))
     };
-
     UART_SetTxAddressMode(UART_SET_MARK);
     UART_PutArray(tx_data, PACKET_SIZE);
     UART_SetTxAddressMode(UART_SET_SPACE);
-    //CyDelay(100); // slow down comms
-/*    
-    UART_PutChar(addr);
-    UART_PutChar(read_write);
-    UART_PutChar((uint8_t) (state >> 24));
-    UART_PutChar((uint8_t) (state >> 16));
-    UART_PutChar((uint8_t) (state >>  8));
-    UART_PutChar((uint8_t) (state >>  0));
-*/
 }
 
 /* [] END OF FILE */

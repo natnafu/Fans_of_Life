@@ -12,19 +12,29 @@
 #include "physical.h"
 #include "project.h"
 #include "rs485.h"
-    
+#include "stopwatch.h"
+
 // Writes to a singe cell, blocks until response received
 void master_write_cell(uint32_t cell, uint32_t state) {
     rs485_tx(cell, UART_WRITE, state);
-    //while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE); // TODO: add timeout
-    CyDelay(10);
+    uint32_t timer_confirmation = stopwatch_start();
+    while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE) {
+        if (stopwatch_elapsed_ms(timer_confirmation) >= TOUT_SLV_RSP) break;   // timeout
+    }
     UART_ClearRxBuffer();
 }
    
 // Reads back single cell state
 uint32_t master_read_cell(uint8_t cell) {
     rs485_tx(cell, UART_READ, 0);
-    while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE); // TODO: add timeout 
+    uint32_t timer_confirmation = stopwatch_start();
+    while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE) {
+        if (stopwatch_elapsed_ms(timer_confirmation) >= TOUT_SLV_RSP) {
+            // Timeout, clear buffer and send back 0s
+            UART_ClearRxBuffer();
+            return 0;
+        }
+    }
     UART_ReadRxData();  // Ignore first R/W byte for now
     uint32_t response = ((uint32_t) UART_ReadRxData() << 24) |
                         ((uint32_t) UART_ReadRxData() << 16) |

@@ -12,9 +12,7 @@
 
 /* KNOWN BUGS/TODOS
     1) If you kill a fan before the validation is complete, that command is ignored
-    2) Spinning a fan backwards doesn't work all the time (possibly detecting a stop while changing directions?)
-    3) Fans sometimes take time to spin up (why validator is needed, possible to fix?)
-    4) Add timeout functionality (Counter with ISR, custom count?)
+    2) Spinning a fan backwards doesn't work all the time (possibly detecting a stop while changing directions)
     5) Add LED support for MASTER to indicate status to user
 */
 
@@ -25,8 +23,8 @@
 #include "rs485.h"
 #include "stopwatch.h"
 
-#define IS_SLAVE
-//#define IS_MASTER
+//#define IS_SLAVE
+#define IS_MASTER
 
 // Config error checking
 #if (defined IS_SLAVE && defined IS_MASTER)
@@ -43,6 +41,7 @@ int main(void)
     Timer_Start();          // Used for stopwatch timers
     UART_Start();           // Used for RS485 comms
     uint32_t timer_comm;    // RS485 communication timer
+    uint8_t rx_buff_size;   // Stores UART RX buffer size
 
 #ifdef IS_SLAVE
     // Holds all the states of the fans
@@ -52,7 +51,7 @@ int main(void)
 
     // Init fan states to 0
     gpiox_init();
-    fan_set_state(0, 5000);
+    fan_set_state(0, TOUT_FAN_SET);
 #endif // SLAVE
 
     for(;;)
@@ -67,7 +66,8 @@ int main(void)
 //        }
         
         // Check for commands
-        if (UART_GetRxBufferSize() == UART_RX_BUFFER_SIZE) {
+        rx_buff_size = UART_GetRxBufferSize();
+        if (rx_buff_size == UART_RX_BUFFER_SIZE) {
             uint8 rx_cmd = UART_ReadRxData();
             if (rx_cmd == UART_READ) {
                 rs485_tx(MASTER_ADDRESS, UART_READ, curr_state);
@@ -76,24 +76,40 @@ int main(void)
                               ((uint32_t) UART_ReadRxData() << 16) |
                               ((uint32_t) UART_ReadRxData() <<  8) |
                               ((uint32_t) UART_ReadRxData() <<  0);
-                fan_set_state(ctrl_state, 0); // NAT: change this to validating
+                rs485_tx(MASTER_ADDRESS, UART_WRITE, curr_state);   // send back confirmation
+                fan_set_state(ctrl_state, 0);
+                //fan_set_state(ctrl_state, TOUT_FAN_SET);
                 curr_state = ctrl_state;
-                rs485_tx(MASTER_ADDRESS, UART_WRITE, curr_state);
+                
             }                        
             // Clear RX buffer after processing data
-            UART_ClearRxBuffer();       
+            UART_ClearRxBuffer();
+            timer_comm = 0;
+        } else if (rx_buff_size != 0) {
+            // If buffer isn't full or empty, clear the buffer if a timeout occurs
+            if (timer_comm == 0) {
+                // Set timer if it hasn't been started yet
+                timer_comm = stopwatch_start();
+            } else {
+                if (stopwatch_elapsed_ms(timer_comm) >= TOUT_RX_COMM) {
+                    // Comm timeout: reset timer and clear RX buffer
+                    timer_comm = 0;
+                    UART_ClearRxBuffer();    
+                }
+            }
         }
        
         old_state = curr_state;   
 #endif // SLAVE
 
-#ifdef IS_MASTER
+#ifdef IS_MASTER 
+        
         CyDelay(5000);
         master_write_all(0);
         CyDelay(5000);
         uint32_t state_test;
         for (uint8_t cell = 0; cell < NUM_CELLS; cell++) {
-//        for (uint8_t cell = 0; cell < 1; cell++) {
+        //for (uint8_t cell = 7; cell < 8; cell++) {
             state_test = 0;
             for (uint8_t fan = 0; fan < FANS_PER_CELL; fan++) {
                 state_test |= (1 << fan);
