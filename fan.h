@@ -15,7 +15,9 @@
 #include "physical.h"
 #include "stopwatch.h"
 
-// Reads status registers and returns the current state of the fans
+#define FAN_DETECT_TIME     100 // time to wait for fan edge, units ms
+
+// Reads and combines all status registers into single uint32
 uint32_t fan_read_all(void) {
     // Get tach signals from status registers
     uint32_t Reg1 = Status_Reg_1_Read();  // tach 0-7
@@ -27,12 +29,17 @@ uint32_t fan_read_all(void) {
     uint32_t tach_signals = (Reg1 | (Reg2 << 8) | (Reg3 << 16)| (Reg4 << 24));
     return tach_signals;
 }
- 
-// Clears status registers, wait for them to reset, then return current fan state
+
+// Returns the current fan state, blocks for 2 * FAN_DETECT_TIME.
 uint32_t fan_get_state() {
-    fan_read_all(); // reset status registers
-    CyDelay(100);   // allow a 10Hz spin to register
-    return fan_read_all();
+    // reset status registers
+    fan_read_all();
+    // Read fans twice to decide if spinning
+    CyDelay(FAN_DETECT_TIME);
+    uint32_t tmp_state = fan_read_all();
+    CyDelay(FAN_DETECT_TIME);
+    tmp_state &= fan_read_all();
+    return tmp_state;
 }
 
 // Starts/stops fans to match `state`.
