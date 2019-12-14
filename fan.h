@@ -44,7 +44,9 @@ uint32_t fan_get_state() {
 
 // Starts/stops fans to match `state`.
 // Will block wait for `validate_ms` before giving up (timeout).
-void fan_set_state(uint32_t state, uint32_t validate_ms) {
+// If validation is used and fails, the current state is return.
+// Otherwise, the set state is returned.
+uint32_t fan_set_state(uint32_t state, uint32_t validate_ms) {
     gpiox_send(GPIOXA, ADDR_PORTA, ((uint8_t)(state >> 00)), ((uint8_t)(state >> 8)));
     gpiox_send(GPIOXB, ADDR_PORTA, ((uint8_t)(state >> 16)), ((uint8_t)(state >> 24)));
     
@@ -53,9 +55,11 @@ void fan_set_state(uint32_t state, uint32_t validate_ms) {
         uint32_t val_timer = stopwatch_start();
         uint32_t new_state = fan_get_state();
         while (new_state != state) {
-            if (stopwatch_elapsed_ms(val_timer) >= validate_ms) break;
+            if (stopwatch_elapsed_ms(val_timer) >= validate_ms) return new_state;
             new_state = fan_get_state();
         }
     }
+
+    return state;
 }
 /* [] END OF FILE */

@@ -48,6 +48,7 @@ uint32_t master_read_cell(uint8_t cell) {
 void master_write_all(uint32_t state) {
     for (uint8_t i = 0; i < NUM_CELLS; i++) {
         master_write_cell(i, state);
+        CyDelay(10);    // delay needed for all to rsp to command. Likely a bus confliction issue, deal with later
     }
 }
 
