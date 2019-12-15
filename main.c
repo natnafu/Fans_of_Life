@@ -10,17 +10,11 @@
  * ========================================
 */
 
-/* KNOWN BUGS/TODOS
-    1) If you kill a fan before the validation is complete, that command is ignored. Not solvable.
-    2) Spinning a fan backwards doesn't work all the time (possibly detecting a stop while changing directions)
-    5) Add LED support for MASTER to indicate status to user
-*/
-
-#include "fan.h"
 #include "conway.h"
+#include "fan.h"
+#include "master.h"
 #include "physical.h"
 #include "project.h"
-#include "master.h"
 #include "rs485.h"
 #include "stopwatch.h"
 
@@ -44,7 +38,7 @@ int main(void)
     uint32_t timer_comm = 0;    // RS485 communication timer 
 
 #ifdef IS_SLAVE
-    uint8_t rx_buff_size;       // Stores UART RX buffer size
+    uint8_t rx_buff_size = 0;       // Stores UART RX buffer size
     uint32_t ctrl_state = 0;    // commanded state from master
     uint32_t old_state  = 0;    // previous state
     uint32_t curr_state = 0;    // current state

@@ -10,9 +10,9 @@
  * ========================================
 */
 
-#include "project.h"
 #include "gpiox.h"
 #include "physical.h"
+#include "project.h"
 #include "stopwatch.h"
 
 #define FAN_DETECT_TIME     100 // time to wait for fan edge, units ms
@@ -59,7 +59,6 @@ uint32_t fan_set_state(uint32_t state, uint32_t validate_ms) {
             new_state = fan_get_state();
         }
     }
-
     return state;
 }
 /* [] END OF FILE */

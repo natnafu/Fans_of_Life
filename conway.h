@@ -16,24 +16,24 @@
 
 uint32_t conway_curr_frame[NUM_ROWS][NUM_COLS] = {0};  
 
-// Returns shift added to a col index and handles wrap around
+// Returns shift added to a row index and handles wrap around
 uint8_t addx(uint8_t index, int shift) {
-    if (index + shift > NUM_COLS) {
-        return index + shift - NUM_COLS;  
+    if (index + shift > NUM_ROWS) {
+        return index + shift - NUM_ROWS;  
     } else if (index + shift < 0) {
-        return index + shift + NUM_COLS;   
+        return index + shift + NUM_ROWS;   
     }
     else {
         return index + shift;   
     }
 }
 
-// Returns shift added to a row index and handles wrap around
+// Returns shift added to a col index and handles wrap around
 uint8_t addy(uint8_t index, int shift) {
-    if (index + shift > NUM_ROWS) {
-        return index + shift - NUM_ROWS;  
+    if (index + shift > NUM_COLS) {
+        return index + shift - NUM_COLS;  
     } else if (index + shift < 0) {
-        return index + shift + NUM_ROWS;   
+        return index + shift + NUM_COLS;   
     }
     else {
         return index + shift;   
@@ -88,6 +88,7 @@ void conway_update_frame() {
 
 // Various conway stating states
 
+// All off
 uint32_t conway_dead[NUM_ROWS][NUM_COLS] = {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -107,6 +108,7 @@ uint32_t conway_dead[NUM_ROWS][NUM_COLS] = {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 };
 
+// Still lifes, no movement
 uint32_t conway_still_lifes[NUM_ROWS][NUM_COLS] = {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
     {0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0},
@@ -126,6 +128,7 @@ uint32_t conway_still_lifes[NUM_ROWS][NUM_COLS] = {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 };
 
+// oscillators with a period of 2
 uint32_t conway_osc[NUM_ROWS][NUM_COLS] = {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -145,6 +148,7 @@ uint32_t conway_osc[NUM_ROWS][NUM_COLS] = {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 };
 
+// pulsar with period of 3
 uint32_t conway_pulsar[NUM_ROWS][NUM_COLS] = {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
     {0,0,0,1,1,1,0,0,0,1,1,1,0,0,0,0},
