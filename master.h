@@ -22,6 +22,7 @@ void master_write_cell(uint32_t cell, uint32_t state) {
         if (stopwatch_elapsed_ms(timer_confirmation) >= TOUT_SLV_RSP) break;   // timeout
     }
     UART_ClearRxBuffer();
+    CyDelay(10);    // delay needed for all to rsp to command. Likely a bus confliction issue, deal with later
 }
    
 // Reads back single cell state
@@ -48,14 +49,13 @@ uint32_t master_read_cell(uint8_t cell) {
 void master_write_all(uint32_t state) {
     for (uint8_t i = 0; i < NUM_CELLS; i++) {
         master_write_cell(i, state);
-        CyDelay(10);    // delay needed for all to rsp to command. Likely a bus confliction issue, deal with later
     }
 }
 
 // Takes in a 16x16 grid, translates to 8 cell states (8bits each), and sets all states
 void master_write_grid(uint32_t grid[NUM_ROWS][NUM_COLS]) {
     // Translate grid into cell states
-    uint32_t cell_states[NUM_CELLS];
+    uint32_t cell_states[NUM_CELLS] = {0};
     for (uint32_t row = 0; row < NUM_ROWS; row++) {     // use # of MASTER rows
         for (uint32_t col = 0; col < NUM_COLS; col++) { // use # of MASTER cols
             if (grid[row][col]) {

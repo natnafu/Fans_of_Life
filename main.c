@@ -17,6 +17,7 @@
 */
 
 #include "fan.h"
+#include "conway.h"
 #include "physical.h"
 #include "project.h"
 #include "master.h"
@@ -40,10 +41,10 @@ int main(void)
     CyGlobalIntEnable;          // Enable global interrupts.
     Timer_Start();              // Used for stopwatch timers
     UART_Start();               // Used for RS485 comms
-    uint32_t timer_comm = 0;    // RS485 communication timer
-    uint8_t rx_buff_size;       // Stores UART RX buffer size
+    uint32_t timer_comm = 0;    // RS485 communication timer 
 
 #ifdef IS_SLAVE
+    uint8_t rx_buff_size;       // Stores UART RX buffer size
     uint32_t ctrl_state = 0;    // commanded state from master
     uint32_t old_state  = 0;    // previous state
     uint32_t curr_state = 0;    // current state
@@ -97,11 +98,17 @@ int main(void)
 #endif // SLAVE
 
 #ifdef IS_MASTER 
-
-        CyDelay(5000);
         master_write_all(0);
         CyDelay(5000);
-
+        memcpy(conway_curr_frame, conway_pulsar, sizeof(conway_curr_frame));
+        master_write_grid(conway_curr_frame);
+        CyDelay(6000);
+        while(1) {
+            conway_update_frame();
+            master_write_grid(conway_curr_frame);
+            CyDelay(6000);
+        }
+/*
         uint32_t state_test;
         for (uint8_t cell = 0; cell < NUM_CELLS; cell++) {
         //for (uint8_t cell = 1; cell < 2; cell++) {
@@ -115,7 +122,8 @@ int main(void)
                 // either the state has been set or its validation has timed out. All robust solutions result in
                 // the grid getting updated every ~5s (spindown time).
             }
-        }  
+        }
+*/
 #endif
     }
 }
