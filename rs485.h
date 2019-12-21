@@ -31,6 +31,7 @@
     *NOTE: UART hardware detect-to-buffer only passed data bytes to buffer, not address.
 */  
 void rs485_tx(uint8_t addr, uint8_t read_write, uint32_t state) {
+    UART_ClearRxBuffer();   // make sure there is space for the response
     uint8_t tx_data[PACKET_SIZE] = {
         addr, 
         read_write,

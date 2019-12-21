@@ -35,6 +35,7 @@ int main(void)
     CyGlobalIntEnable;          // Enable global interrupts.
     Timer_Start();              // Used for stopwatch timers
     UART_Start();               // Used for RS485 comms
+    UART_ClearRxBuffer();
     uint32_t timer_comm = 0;    // RS485 communication timer 
 
 #ifdef IS_SLAVE
@@ -94,7 +95,18 @@ int main(void)
 #ifdef IS_MASTER 
         master_write_all(0);
         CyDelay(5000);
-        memcpy(conway_curr_frame, conway_pulsar, sizeof(conway_curr_frame));
+       
+        // test reading back fans
+        while(1) {
+           master_read_grid(conway_curr_frame);
+           conway_update_frame();
+           master_write_grid(conway_curr_frame);
+           CyDelay(5000);
+        }
+        
+        
+        
+        memcpy(conway_curr_frame, conway_dead, sizeof(conway_curr_frame));
         master_write_grid(conway_curr_frame);
         CyDelay(6000);
         while(1) {

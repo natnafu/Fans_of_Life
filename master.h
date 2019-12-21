@@ -29,8 +29,12 @@ void master_write_cell(uint32_t cell, uint32_t state) {
 uint32_t master_read_cell(uint8_t cell) {
     rs485_tx(cell, UART_READ, 0);
     uint32_t timer_confirmation = stopwatch_start();
+    uint32_t elapsed_time = 0;
     while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE) {
-        if (stopwatch_elapsed_ms(timer_confirmation) >= TOUT_SLV_RSP) {
+        CyDelay(1);
+        elapsed_time = stopwatch_elapsed_ms(timer_confirmation);
+        if (elapsed_time >= TOUT_SLV_RSP) {
+        //if (stopwatch_elapsed_ms(timer_confirmation) >= TOUT_SLV_RSP) {
             // Timeout, clear buffer and send back 0s
             UART_ClearRxBuffer();
             return 0;
@@ -41,7 +45,8 @@ uint32_t master_read_cell(uint8_t cell) {
                         ((uint32_t) UART_ReadRxData() << 16) |
                         ((uint32_t) UART_ReadRxData() <<  8) |
                         ((uint32_t) UART_ReadRxData() <<  0);
-    UART_ClearRxBuffer();
+    //UART_ClearRxBuffer();
+    CyDelay(10);    // delay needed for all to rsp to command. Likely a bus confliction issue, deal with later
     return response;
 }
 
@@ -69,9 +74,8 @@ void master_write_grid(uint32_t grid[NUM_ROWS][NUM_COLS]) {
     }
 }
 
-/*
-// Updates global master_grid based on cell states
-void master_read_grid() {
+// Updates grid based on cell states
+void master_read_grid(uint32_t grid[NUM_ROWS][NUM_COLS]) {
     for (uint32_t cell = 0; cell < NUM_CELLS; cell++) {
         uint32_t cell_state = master_read_cell(cell);
         for (uint32_t row = 0; row < CELL_ROWS; row++) {
@@ -79,11 +83,10 @@ void master_read_grid() {
                 uint32_t fan = cell_state & (1 << (row*CELL_COLS + col));
                 uint32_t master_row = CELL_ROWS * (cell / 2) + row;
                 uint32_t master_col = CELL_COLS * (cell % 2) + col;
-                master_grid[master_row][master_col] = fan;
+                grid[master_row][master_col] = fan;
             }
         }
     }
 }
-*/
 
 /* [] END OF FILE */

@@ -15,7 +15,7 @@
 // timeouts, units of ms
 #define TOUT_FAN_SET    5000    // Fan state validation timeout (fans take ~5s to spin down)
 #define TOUT_RX_COMM    300     // UART RX timeout from first byte (packet should take 0.5ms to finish)
-#define TOUT_SLV_RSP    300     // Slave responce timeout.
+#define TOUT_SLV_RSP    500     // Slave responce timeout.
 
 // Returns the current timer count
 uint32_t stopwatch_start(void) {
