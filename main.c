@@ -18,8 +18,8 @@
 #include "rs485.h"
 #include "stopwatch.h"
 
-//#define IS_SLAVE
-#define IS_MASTER
+#define IS_SLAVE
+//#define IS_MASTER
 
 // Config error checking
 #if (defined IS_SLAVE && defined IS_MASTER)
@@ -30,8 +30,8 @@
 #error  incorrect slave UART hardware address
 #endif
 
-int main(void)
-{
+int main(void) {
+
     CyGlobalIntEnable;          // Enable global interrupts.
     Timer_Start();              // Used for stopwatch timers
     UART_Start();               // Used for RS485 comms
@@ -39,22 +39,44 @@ int main(void)
     uint32_t timer_comm = 0;    // RS485 communication timer 
 
 #ifdef IS_SLAVE
-    uint8_t rx_buff_size = 0;       // Stores UART RX buffer size
+    uint8_t rx_buff_size = 0;   // Stores UART RX buffer size
     uint32_t ctrl_state = 0;    // commanded state from master
     uint32_t old_state  = 0;    // previous state
     uint32_t curr_state = 0;    // current state
-    gpiox_init();                       // Init GPIO expander ICs
+
+    uint32_t validation[FANS_PER_CELL] = {0};    // holds the validation times for each fan
+
+    gpiox_init();   // Init GPIO expander ICs
     curr_state = fan_set_state(0, TOUT_FAN_SET);     // Init fan states to 0
 #endif // SLAVE
 
     for(;;)
     {
 #ifdef IS_SLAVE
-        // Save state
-        old_state = curr_state;
-        // Update state
-        curr_state = fan_get_state(); // blocks for 200ms (update this is FAN_DETECT_TIME is changed)
-        // Check if it changed
+        // Handle updating fan state
+        old_state = curr_state;         // Save state
+        curr_state = fan_get_state();   // Get new state (200ms blocking time)
+
+        // Handle validation
+        for (uint32_t i = 0; i < FANS_PER_CELL; i++) {
+            if (validation[i]) {
+                if (curr_state & (1 << i)) {
+                    // fan still spinning, check if validation expired
+                    if (stopwatch_elapsed_ms(validation[i]) >= TOUT_FAN_SET) {
+                        // validation expired, reset
+                        validation[i] = 0;
+                    } else {
+                        // still validating, don't recognize spindown as human input
+                        curr_state &= ~(1 << i);
+                    }
+                } else {
+                    // fan not spinning, reset validation
+                    validation[i] = 0;
+                }
+            }
+        }
+
+        // Handle human input
         if (curr_state != old_state) {
             fan_set_state(curr_state, 0);  // don't validate since human input has no spindown
         }
@@ -72,7 +94,7 @@ int main(void)
                               ((uint32_t) UART_ReadRxData() <<  8) |
                               ((uint32_t) UART_ReadRxData() <<  0);
                 rs485_tx(MASTER_ADDRESS, UART_WRITE, curr_state);   // send back confirmation that cmd was received
-                curr_state = fan_set_state(ctrl_state, TOUT_FAN_SET);
+                curr_state = fan_set_ctrl(curr_state, ctrl_state, validation);
             }
             // Clear RX buffer after processing data
             UART_ClearRxBuffer();
@@ -95,7 +117,16 @@ int main(void)
 #ifdef IS_MASTER 
         master_write_all(0);
         CyDelay(5000);
-       
+
+        // test masking bits
+        uint32_t left_half = 0b11110000111100001111000011110000;
+        while(1) {
+            master_write_cell(0, left_half);
+            CyDelay(5000);
+            master_write_cell(0, 0);
+            CyDelay(5000);
+        }
+        
         // test reading back fans
         while(1) {
            master_read_grid(conway_curr_frame);
@@ -105,7 +136,7 @@ int main(void)
         }
         
         
-        
+       
         memcpy(conway_curr_frame, conway_dead, sizeof(conway_curr_frame));
         master_write_grid(conway_curr_frame);
         CyDelay(6000);

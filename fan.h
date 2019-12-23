@@ -31,7 +31,7 @@ uint32_t fan_read_all(void) {
 }
 
 // Returns the current fan state, blocks for 2 * FAN_DETECT_TIME.
-uint32_t fan_get_state() {
+uint32_t fan_get_state(void) {
     // reset status registers
     fan_read_all();
     // Read fans twice to decide if spinning
@@ -60,5 +60,17 @@ uint32_t fan_set_state(uint32_t state, uint32_t validate_ms) {
         }
     }
     return state;
+}
+
+// Determines which fans are turning off, starts/resets validation timers, and sets fans to ctrl.
+// Handles commands from master.
+uint32_t fan_set_ctrl(uint32_t curr_state, uint32_t ctrl_state, uint32_t validation[FANS_PER_CELL]) {
+    uint32_t has_changed = curr_state ^ ctrl_state;     // 1 = change is happening
+    uint32_t turned_off = has_changed & curr_state;     // 1 = turned off (has changed and was 1)
+    for (uint32_t i = 0; i < FANS_PER_CELL; i++) {
+        if (turned_off & (1 << i)) validation[i] = stopwatch_start();   // set validatio time if fan turned off
+        else validation[i] = 0;     // else reset any validation
+    }
+    return fan_set_state(ctrl_state, 0);
 }
 /* [] END OF FILE */

@@ -18,7 +18,7 @@
 // For cells
 #define CELL_ROWS       4   // number of rows in a cell
 #define CELL_COLS       8   // number of columns in a cell
-#define FANS_PER_CELL   32  // number of fans in each cell
+#define FANS_PER_CELL   (CELL_ROWS * CELL_COLS)  // number of fans in each cell
 
 /* 
 Each cell contains 4 rows of 8 fans (32 total fans).

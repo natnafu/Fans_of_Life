@@ -13,7 +13,7 @@
 #include "project.h"
 
 // timeouts, units of ms
-#define TOUT_FAN_SET    5000    // Fan state validation timeout (fans take ~5s to spin down)
+#define TOUT_FAN_SET    6000    // Fan state validation timeout (fans take ~6s to spin down)
 #define TOUT_RX_COMM    300     // UART RX timeout from first byte (packet should take 0.5ms to finish)
 #define TOUT_SLV_RSP    500     // Slave responce timeout.
 
