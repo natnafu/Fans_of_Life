@@ -18,8 +18,8 @@
 #include "rs485.h"
 #include "stopwatch.h"
 
-#define IS_SLAVE
-//#define IS_MASTER
+//#define IS_SLAVE
+#define IS_MASTER
 
 // Config error checking
 #if (defined IS_SLAVE && defined IS_MASTER)
@@ -36,19 +36,24 @@ int main(void) {
     Timer_Start();              // Used for stopwatch timers
     UART_Start();               // Used for RS485 comms
     UART_ClearRxBuffer();
-    uint32_t timer_comm = 0;    // RS485 communication timer 
 
-#ifdef IS_SLAVE
+
+#if (defined IS_SLAVE)
     uint8_t rx_buff_size = 0;   // Stores UART RX buffer size
     uint32_t ctrl_state = 0;    // commanded state from master
     uint32_t old_state  = 0;    // previous state
     uint32_t curr_state = 0;    // current state
 
+    uint32_t timer_comm = 0;    // RS485 communication timer 
     uint32_t validation[FANS_PER_CELL] = {0};    // holds the validation times for each fan
 
     gpiox_init();   // Init GPIO expander ICs
     curr_state = fan_set_state(0, TOUT_FAN_SET);     // Init fan states to 0
-#endif // SLAVE
+#elif (defined IS_MASTER)
+    CyDelay(1000);
+    master_write_all(0);
+    CyDelay(6000);
+#endif
 
     for(;;)
     {
@@ -115,28 +120,21 @@ int main(void) {
 #endif // SLAVE
 
 #ifdef IS_MASTER 
-        master_write_all(0);
-        CyDelay(5000);
-
-        // test masking bits
-        uint32_t left_half = 0b11110000111100001111000011110000;
-        while(1) {
-            master_write_cell(0, left_half);
-            CyDelay(5000);
-            master_write_cell(0, 0);
-            CyDelay(5000);
-        }
-        
-        // test reading back fans
-        while(1) {
+            // Play Conway's Game of Life
            master_read_grid(conway_curr_frame);
            conway_update_frame();
            master_write_grid(conway_curr_frame);
-           CyDelay(5000);
+           CyDelay(6000);
+/*
+        // Tests turning all fans on and off
+        while(1) {
+            master_write_all(0);
+            CyDelay(5000);
+            master_write_all(UINT32_MAX);
+            CyDelay(5000);
         }
-        
-        
-       
+               
+        // Tests conway wiht no human input
         memcpy(conway_curr_frame, conway_dead, sizeof(conway_curr_frame));
         master_write_grid(conway_curr_frame);
         CyDelay(6000);
@@ -145,7 +143,8 @@ int main(void) {
             master_write_grid(conway_curr_frame);
             CyDelay(6000);
         }
-/*
+
+        // Tests writing cells
         uint32_t state_test;
         for (uint8_t cell = 0; cell < NUM_CELLS; cell++) {
         //for (uint8_t cell = 1; cell < 2; cell++) {
