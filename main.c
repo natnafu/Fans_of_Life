@@ -18,8 +18,8 @@
 #include "rs485.h"
 #include "stopwatch.h"
 
-//#define IS_SLAVE
-#define IS_MASTER
+#define IS_SLAVE
+//#define IS_MASTER
 
 // Config error checking
 #if (defined IS_SLAVE && defined IS_MASTER)
@@ -58,6 +58,24 @@ int main(void) {
     for(;;)
     {
 #ifdef IS_SLAVE
+        // PWM TEST
+        double duty = 0.5;    // 0-1
+        double period = 1000;      // units ms
+        timer_comm = stopwatch_start();
+        while(1) {
+            CyDelay(10);
+            if (stopwatch_elapsed_ms(timer_comm) < 5000) {
+                fan_set_state(0, 0);
+                CyDelay((1-duty) * period);
+                fan_set_state(1, 0);
+                CyDelay(duty * period);
+            } else {
+                fan_set_state(0,0);
+                CyDelay(5000);
+                timer_comm = stopwatch_start();    
+            }
+        }
+    
         // Handle updating fan state
         old_state = curr_state;         // Save state
         curr_state = fan_get_state();   // Get new state (200ms blocking time)
