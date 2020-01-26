@@ -30,6 +30,21 @@
 #error  incorrect slave UART hardware address
 #endif
 
+#ifdef IS_SLAVE
+uint32_t gpiox_state = 0;   // state of the fan control GPIO expanders
+uint32_t last = 0;
+    
+CY_ISR(fan_on_isr) {
+    fan_set_state(gpiox_state,0);    
+    //if (gpiox_state != last) CyDelay(100);
+    //last = gpiox_state;
+}
+CY_ISR(fan_off_isr) {
+    fan_set_state(gpiox_state&1,0);    
+    //fan_set_state(0,0);    
+}
+#endif
+
 int main(void) {
 
     CyGlobalIntEnable;          // Enable global interrupts.
@@ -49,6 +64,25 @@ int main(void) {
 
     gpiox_init();   // Init GPIO expander ICs
     curr_state = fan_set_state(0, TOUT_FAN_SET);     // Init fan states to 0
+    gpiox_state = curr_state;
+    isr_fan_on_StartEx(fan_on_isr);
+    isr_fan_off_StartEx(fan_off_isr);
+    
+    
+    // TESTING FAN ISRS
+    uint16_t pwm_period = 600;  // units ms
+    uint16_t pwm_on_time = 100; // units ms
+    PWM_Fan_Start();
+    PWM_Fan_WritePeriod(pwm_period);
+    PWM_Fan_WriteCompare(pwm_on_time);
+    gpiox_state = 3;
+    while(1) {
+        CyDelay(5000);
+        gpiox_state = 0;
+        CyDelay(5000);
+        gpiox_state = 3;
+    }
+    
 #elif (defined IS_MASTER)
     CyDelay(1000);
     master_write_all(0);
@@ -58,6 +92,7 @@ int main(void) {
     for(;;)
     {
 #ifdef IS_SLAVE
+/*
         // PWM TEST
         double duty = 0.5;    // 0-1
         double period = 1000;      // units ms
@@ -75,7 +110,7 @@ int main(void) {
                 timer_comm = stopwatch_start();    
             }
         }
-    
+*/    
         // Handle updating fan state
         old_state = curr_state;         // Save state
         curr_state = fan_get_state();   // Get new state (200ms blocking time)
