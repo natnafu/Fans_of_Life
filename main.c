@@ -18,8 +18,8 @@
 #include "rs485.h"
 #include "stopwatch.h"
 
-//#define IS_SLAVE
-#define IS_MASTER
+#define IS_SLAVE
+//#define IS_MASTER
 
 // Config error checking
 #if (defined IS_SLAVE && defined IS_MASTER)
@@ -29,6 +29,12 @@
 #elif (defined IS_SLAVE && UART_RX_HW_ADDRESS1 >= 8)
 #error  incorrect slave UART hardware address
 #endif
+
+// Cell configuration bits
+#define CONFIG_PULSE_TIME   (1 << 0)    // enables/disables pulsing all fans on before a read operation
+#define CONFIG_PWM_FANS     (1 << 1)    // enables/disables PWMing fans that are on
+
+#define CONFIG_DEFAULT      0           // default cell config, no pulsing or pwm
 
 int main(void) {
 
@@ -44,7 +50,12 @@ int main(void) {
     uint32_t old_state  = 0;    // previous state
     uint32_t curr_state = 0;    // current state
 
+    uint32_t config = CONFIG_DEFAULT;
+    uint32_t cell_pulse_time_ms = 0;
+    uint32_t cell_pwm_time_ms = 0;
+
     uint32_t timer_comm = 0;    // RS485 communication timer 
+
     uint32_t validation[FANS_PER_CELL] = {0};    // holds the validation times for each fan
 
     gpiox_init();   // Init GPIO expander ICs
@@ -58,6 +69,24 @@ int main(void) {
     for(;;)
     {
 #ifdef IS_SLAVE
+        // Handle pulsing. Turns all fans on for cell_pulse_time_ms and then restores state.
+        // This is attempting to quiet the whining sound of the fans when off and trying to spin.
+        // Depending on length, may create an audible clicking sound or have no effect.
+        // NOTE: this doesn't really work :(
+        if (cell_pulse_time_ms) {
+            fan_set_state(UINT32_MAX, 0);
+            CyDelay(cell_pulse_time_ms);
+            fan_set_state(curr_state, 0);
+        }
+
+        // Handle PWMing. If enabled, turn on fan for cell_pwm_time_ms and then turn off.
+        // This lowers the fan speed for less force on fingers. Trade off is a small audible clicking sound.
+        if (cell_pwm_time_ms) {
+            fan_set_state(curr_state, 0);
+            CyDelay(cell_pwm_time_ms);
+            fan_set_state(0,0);
+        }
+
         // Handle updating fan state
         old_state = curr_state;         // Save state
         curr_state = fan_get_state();   // Get new state (200ms blocking time)
@@ -100,6 +129,13 @@ int main(void) {
                               ((uint32_t) UART_ReadRxData() <<  0);
                 rs485_tx(MASTER_ADDRESS, UART_WRITE, curr_state);   // send back confirmation that cmd was received
                 curr_state = fan_set_ctrl(curr_state, ctrl_state, validation);
+            } else if (rx_cmd == UART_CONFIG) {
+                uint8_t config_option =  UART_ReadRxData(); // get type of config
+                if (config_option == CONFIG_PULSE_TIME) {
+                    cell_pulse_time_ms = UART_ReadRxData();
+                } else if (config_option == CONFIG_PWM_FANS) {
+                    cell_pwm_time_ms = UART_ReadRxData();
+                }
             }
             // Clear RX buffer after processing data
             UART_ClearRxBuffer();

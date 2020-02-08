@@ -12,8 +12,9 @@
 #pragma once
 #include "project.h"
 
-#define UART_READ       0
-#define UART_WRITE      1
+#define UART_READ       0   // fan read command
+#define UART_WRITE      1   // fan write command
+#define UART_CONFIG     2   // cell configure command
 
 #define MASTER_ADDRESS  8
 #define PACKET_SIZE     6
