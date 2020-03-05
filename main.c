@@ -18,8 +18,8 @@
 #include "rs485.h"
 #include "stopwatch.h"
 
-#define IS_SLAVE
-//#define IS_MASTER
+//#define IS_SLAVE
+#define IS_MASTER
 
 // Config error checking
 #if (defined IS_SLAVE && defined IS_MASTER)
@@ -63,7 +63,10 @@ int main(void) {
 #elif (defined IS_MASTER)
     CyDelay(1000);
     master_write_all(0);
-    CyDelay(6000);
+    
+#define CHANGE_TIMER_MS     6000
+    uint32_t timer_change = stopwatch_start();   // counts the time since human input
+    //CyDelay(6000);
 #endif
 
     for(;;)
@@ -156,11 +159,22 @@ int main(void) {
 #endif // SLAVE
 
 #ifdef IS_MASTER 
-            // Play Conway's Game of Life
-           master_read_grid(conway_curr_frame);
-           conway_update_frame();
-           master_write_grid(conway_curr_frame);
-           CyDelay(6000);
+        // Play Conway's Game of Life
+
+        // Save last state
+        memcpy(conway_last_frame, conway_curr_frame, sizeof(conway_curr_frame));
+        // Read grid
+        master_read_grid(conway_curr_frame);
+        // Check if it's change        
+        if (conway_has_changed() >= 2) {
+            timer_change = stopwatch_start();    
+        }
+        // Update only if timer has expired
+        if (stopwatch_elapsed_ms(timer_change) >= CHANGE_TIMER_MS) {
+            conway_update_frame();
+            master_write_grid(conway_curr_frame);
+            timer_change = stopwatch_start();
+        }
 /*
         // Tests turning all fans on and off
         while(1) {

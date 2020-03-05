@@ -25,7 +25,7 @@ uint32_t stopwatch_start(void) {
 // Returns the difference in ms between the given and current count (assumes 1kHz count clock)
 uint32_t stopwatch_elapsed_ms(uint32_t time_ms) {
     uint32_t curr_time_ms = Timer_ReadCounter();
-    if (time_ms > curr_time_ms) return (time_ms - curr_time_ms);
+    if (time_ms >= curr_time_ms) return (time_ms - curr_time_ms);
     // Handle counter rollover
     return (time_ms + (Timer_ReadPeriod() - curr_time_ms));
 }

@@ -15,6 +15,7 @@
 #define NUM_COLS 16
 
 uint32_t conway_curr_frame[NUM_ROWS][NUM_COLS] = {0};  
+uint32_t conway_last_frame[NUM_ROWS][NUM_COLS] = {0};  
 
 // Returns shift added to a row index and handles wrap around
 uint8_t addx(uint8_t index, int shift) {
@@ -84,6 +85,17 @@ void conway_update_frame() {
             }
         }
     }
+}
+
+// returns 1 if curr frame doesn't match last
+uint32_t conway_has_changed() {
+    uint32_t num_changed = 0;
+    for (int x = 0; x < NUM_ROWS; x++) {
+        for (int y = 0; y < NUM_COLS; y++) {
+            if (conway_curr_frame[x][y] != conway_last_frame[x][y]) num_changed++;
+        }
+    }
+    return num_changed;
 }
 
 // Various conway stating states

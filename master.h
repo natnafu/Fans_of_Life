@@ -14,6 +14,8 @@
 #include "rs485.h"
 #include "stopwatch.h"
 
+uint8_t rx_timeout = 0;
+
 // Writes to a singe cell, blocks until response received
 void master_write_cell(uint32_t cell, uint32_t state) {
     rs485_tx(cell, UART_WRITE, state);
@@ -30,6 +32,7 @@ uint32_t master_read_cell(uint8_t cell) {
     rs485_tx(cell, UART_READ, 0);
     uint32_t timer_confirmation = stopwatch_start();
     uint32_t elapsed_time = 0;
+    rx_timeout = 0;
     while (UART_GetRxBufferSize() != UART_RX_BUFFER_SIZE) {
         CyDelay(1);
         elapsed_time = stopwatch_elapsed_ms(timer_confirmation);
@@ -37,6 +40,7 @@ uint32_t master_read_cell(uint8_t cell) {
         //if (stopwatch_elapsed_ms(timer_confirmation) >= TOUT_SLV_RSP) {
             // Timeout, clear buffer and send back 0s
             UART_ClearRxBuffer();
+            rx_timeout = 1;
             return 0;
         }
     }
@@ -78,6 +82,11 @@ void master_write_grid(uint32_t grid[NUM_ROWS][NUM_COLS]) {
 void master_read_grid(uint32_t grid[NUM_ROWS][NUM_COLS]) {
     for (uint32_t cell = 0; cell < NUM_CELLS; cell++) {
         uint32_t cell_state = master_read_cell(cell);
+        if (rx_timeout) {
+            // skip updating this one if there was a timeout
+            rx_timeout = 0;
+            continue;
+        }
         for (uint32_t row = 0; row < CELL_ROWS; row++) {
             for (uint32_t col = 0; col < CELL_COLS; col++) {
                 uint32_t fan = cell_state & (1 << (row*CELL_COLS + col));
