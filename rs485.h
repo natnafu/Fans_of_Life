@@ -16,7 +16,7 @@
 #define UART_WRITE      1   // fan write command
 #define UART_CONFIG     2   // cell configure command
 
-#define MASTER_ADDRESS  8
+#define CONTROLLER_ADDRESS  8
 #define PACKET_SIZE     6
 
 /* 

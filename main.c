@@ -12,22 +12,22 @@
 
 #include "conway.h"
 #include "fan.h"
-#include "master.h"
+#include "controller.h"
 #include "physical.h"
 #include "project.h"
 #include "rs485.h"
 #include "stopwatch.h"
 
-//#define IS_SLAVE
-#define IS_MASTER
+//#define IS_PERIPHERAL
+#define IS_CONTROLLER
 
 // Config error checking
-#if (defined IS_SLAVE && defined IS_MASTER)
-#error  Can not define both master and slave   
-#elif (defined IS_MASTER && UART_RX_HW_ADDRESS1 != 8)
-#error  incorrect master UART hardware address
-#elif (defined IS_SLAVE && UART_RX_HW_ADDRESS1 >= 8)
-#error  incorrect slave UART hardware address
+#if (defined IS_PERIPHERAL && defined IS_CONTROLLER)
+#error  Can not define both controller and peripheral   
+#elif (defined IS_CONTROLLER && UART_RX_HW_ADDRESS1 != 8)
+#error  incorrect controller UART hardware address
+#elif (defined IS_PERIPHERAL && UART_RX_HW_ADDRESS1 >= 8)
+#error  incorrect peripheral UART hardware address
 #endif
 
 // Cell configuration bits
@@ -44,9 +44,9 @@ int main(void) {
     UART_ClearRxBuffer();
 
 
-#if (defined IS_SLAVE)
+#if (defined IS_PERIPHERAL)
     uint8_t rx_buff_size = 0;   // Stores UART RX buffer size
-    uint32_t ctrl_state = 0;    // commanded state from master
+    uint32_t ctrl_state = 0;    // commanded state from controller
     uint32_t old_state  = 0;    // previous state
     uint32_t curr_state = 0;    // current state
 
@@ -60,9 +60,9 @@ int main(void) {
 
     gpiox_init();   // Init GPIO expander ICs
     curr_state = fan_set_state(0, TOUT_FAN_SET);     // Init fan states to 0
-#elif (defined IS_MASTER)
+#elif (defined IS_CONTROLLER)
     CyDelay(1000);
-    master_write_all(0);
+    controller_write_all(0);
     
 #define CHANGE_TIMER_MS     6000
     uint32_t timer_change = stopwatch_start();   // counts the time since human input
@@ -71,7 +71,7 @@ int main(void) {
 
     for(;;)
     {
-#ifdef IS_SLAVE
+#ifdef IS_PERIPHERAL
         // Handle pulsing. Turns all fans on for cell_pulse_time_ms and then restores state.
         // This is attempting to quiet the whining sound of the fans when off and trying to spin.
         // Depending on length, may create an audible clicking sound or have no effect.
@@ -123,14 +123,14 @@ int main(void) {
         if (rx_buff_size == UART_RX_BUFFER_SIZE) {
             uint8 rx_cmd = UART_ReadRxData();   // first byte is READ/WRITE
             if (rx_cmd == UART_READ) {
-                rs485_tx(MASTER_ADDRESS, UART_READ, curr_state);    // send back current state
+                rs485_tx(CONTROLLER_ADDRESS, UART_READ, curr_state);    // send back current state
             } else if (rx_cmd == UART_WRITE) {
                 // next 4 bytes are new state
                 ctrl_state  = ((uint32_t) UART_ReadRxData() << 24) |
                               ((uint32_t) UART_ReadRxData() << 16) |
                               ((uint32_t) UART_ReadRxData() <<  8) |
                               ((uint32_t) UART_ReadRxData() <<  0);
-                rs485_tx(MASTER_ADDRESS, UART_WRITE, curr_state);   // send back confirmation that cmd was received
+                rs485_tx(CONTROLLER_ADDRESS, UART_WRITE, curr_state);   // send back confirmation that cmd was received
                 curr_state = fan_set_ctrl(curr_state, ctrl_state, validation);
             } else if (rx_cmd == UART_CONFIG) {
                 uint8_t config_option =  UART_ReadRxData(); // get type of config
@@ -156,15 +156,15 @@ int main(void) {
                 }
             }
         }
-#endif // SLAVE
+#endif // peripheral
 
-#ifdef IS_MASTER 
+#ifdef IS_CONTROLLER 
         // Play Conway's Game of Life
 
         // Save last state
         memcpy(conway_last_frame, conway_curr_frame, sizeof(conway_curr_frame));
         // Read grid
-        master_read_grid(conway_curr_frame);
+        controller_read_grid(conway_curr_frame);
         // Check if it's change        
         if (conway_has_changed() >= 2) {
             timer_change = stopwatch_start();    
@@ -172,25 +172,25 @@ int main(void) {
         // Update only if timer has expired
         if (stopwatch_elapsed_ms(timer_change) >= CHANGE_TIMER_MS) {
             conway_update_frame();
-            master_write_grid(conway_curr_frame);
+            controller_write_grid(conway_curr_frame);
             timer_change = stopwatch_start();
         }
 /*
         // Tests turning all fans on and off
         while(1) {
-            master_write_all(0);
+            controller_write_all(0);
             CyDelay(5000);
-            master_write_all(UINT32_MAX);
+            controller_write_all(UINT32_MAX);
             CyDelay(5000);
         }
                
         // Tests conway wiht no human input
         memcpy(conway_curr_frame, conway_dead, sizeof(conway_curr_frame));
-        master_write_grid(conway_curr_frame);
+        controller_write_grid(conway_curr_frame);
         CyDelay(6000);
         while(1) {
             conway_update_frame();
-            master_write_grid(conway_curr_frame);
+            controller_write_grid(conway_curr_frame);
             CyDelay(6000);
         }
 
@@ -201,10 +201,10 @@ int main(void) {
             state_test = 0;
             for (uint8_t fan = 0; fan < FANS_PER_CELL; fan++) {
                 state_test |= (1 << fan);
-                master_write_cell(cell, state_test);
-                CyDelay(500);   // min slave response time is ~200ms because of blocking fan_get_state()
+                controller_write_cell(cell, state_test);
+                CyDelay(500);   // min peripheral response time is ~200ms because of blocking fan_get_state()
                 // NOTE: this delay only works for setting. To be robust to all commands, this delay should be
-                // greater than or equal to the fan validation timeout. Possibly could have the slave respond when
+                // greater than or equal to the fan validation timeout. Possibly could have the peripheral respond when
                 // either the state has been set or its validation has timed out. All robust solutions result in
                 // the grid getting updated every ~5s (spindown time).
             }

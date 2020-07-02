@@ -10,10 +10,10 @@
  * ========================================
 */
 
-// For master (full grid)
+// For controller (full grid)
 #define NUM_ROWS        16
 #define NUM_COLS        16
-#define NUM_CELLS       8   // number of slave cells
+#define NUM_CELLS       8   // number of peripheral cells
 
 // For cells
 #define CELL_ROWS       4   // number of rows in a cell

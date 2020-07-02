@@ -32,7 +32,7 @@ The MCP23S17 will increment its addess pointer to the next slot (regB)
 Byte dataB will be written to this register (regB)
 */
 void gpiox_send(uint8_t gpiox, uint8_t regA, uint8_t dataA, uint8_t dataB) {
-    // Enable SPI slave
+    // Enable SPI peripheral
     if (gpiox == GPIOXA) nCS_GPIOXA_Write(SPI_ENABLE);
     if (gpiox == GPIOXB) nCS_GPIOXB_Write(SPI_ENABLE);
     
@@ -43,7 +43,7 @@ void gpiox_send(uint8_t gpiox, uint8_t regA, uint8_t dataA, uint8_t dataB) {
     SPIM_GPIOX_WriteByte(dataB);         // register B data
     while (0u == (SPIM_GPIOX_ReadTxStatus() & SPIM_GPIOX_STS_SPI_DONE)); // wait for TX to finish
     
-    // Disable SPI slave
+    // Disable SPI peripheral
     if (gpiox == GPIOXA) nCS_GPIOXA_Write(SPI_DISABLE);
     if (gpiox == GPIOXB) nCS_GPIOXB_Write(SPI_DISABLE);
 }
