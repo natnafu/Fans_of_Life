@@ -11,7 +11,8 @@ If someone manually stops a fan, it will stay stopped (dead).
 
 [See a video of the project here.](https://vimeo.com/429323547)
 
-<img src="fol_1.JPG" height="400" />
+![](fol_2.gif)
+![](fol_3.gif)
 
 ## Hardware/Firmware
 The system is setup with 1 controller and 8 cells.
