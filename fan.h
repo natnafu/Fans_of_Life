@@ -1,15 +1,3 @@
-/* ========================================
- *
- * Copyright NAFU STUDIOS, 2019
- * All Rights Reserved
- * UNPUBLISHED, LICENSED SOFTWARE.
- *
- * CONFIDENTIAL AND PROPRIETARY INFORMATION
- * WHICH IS THE PROPERTY OF NAFU STUDIOS.
- *
- * ========================================
-*/
-
 #include "gpiox.h"
 #include "physical.h"
 #include "project.h"
@@ -73,4 +61,3 @@ uint32_t fan_set_ctrl(uint32_t curr_state, uint32_t ctrl_state, uint32_t validat
     }
     return fan_set_state(ctrl_state, 0);
 }
-/* [] END OF FILE */

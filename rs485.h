@@ -1,14 +1,3 @@
-/* ========================================
- *
- * Copyright NAFU STUDIOS, 2019
- * All Rights Reserved
- * UNPUBLISHED, LICENSED SOFTWARE.
- *
- * CONFIDENTIAL AND PROPRIETARY INFORMATION
- * WHICH IS THE PROPERTY OF NAFU STUDIOS.
- *
- * ========================================
-*/
 #pragma once
 #include "project.h"
 
@@ -45,5 +34,3 @@ void rs485_tx(uint8_t addr, uint8_t read_write, uint32_t state) {
     UART_PutArray(tx_data, PACKET_SIZE);
     UART_SetTxAddressMode(UART_SET_SPACE);
 }
-
-/* [] END OF FILE */

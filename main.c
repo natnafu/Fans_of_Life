@@ -1,15 +1,3 @@
-/* ========================================
- *
- * Copyright NAFU STUDIOS, 2018
- * All Rights Reserved
- * UNPUBLISHED, LICENSED SOFTWARE.
- *
- * CONFIDENTIAL AND PROPRIETARY INFORMATION
- * WHICH IS THE PROPERTY OF NAFU STUDIOS.
- *
- * ========================================
-*/
-
 #include "conway.h"
 #include "fan.h"
 #include "controller.h"

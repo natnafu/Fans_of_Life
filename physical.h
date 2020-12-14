@@ -1,15 +1,3 @@
-/* ========================================
- *
- * Copyright YOUR COMPANY, THE YEAR
- * All Rights Reserved
- * UNPUBLISHED, LICENSED SOFTWARE.
- *
- * CONFIDENTIAL AND PROPRIETARY INFORMATION
- * WHICH IS THE PROPERTY OF your company.
- *
- * ========================================
-*/
-
 // For controller (full grid)
 #define NUM_ROWS        16
 #define NUM_COLS        16
@@ -31,5 +19,3 @@ Fan spinning states are stored in a single uint32_t, one bit per fan
 Bit 31 = fan 31, bit 0 = fan 0
 1 = fan spinning, 0 = fan stopped
 */
-
-/* [] END OF FILE */

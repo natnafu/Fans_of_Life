@@ -1,14 +1,3 @@
-/* ========================================
- *
- * Copyright NAFU STUDIOS, 2019
- * All Rights Reserved
- * UNPUBLISHED, LICENSED SOFTWARE.
- *
- * CONFIDENTIAL AND PROPRIETARY INFORMATION
- * WHICH IS THE PROPERTY OF NAFU STUDIOS.
- *
- * ========================================
-*/
 #pragma once
 #include "project.h"
 
@@ -29,5 +18,3 @@ uint32_t stopwatch_elapsed_ms(uint32_t time_ms) {
     // Handle counter rollover
     return (time_ms + (Timer_ReadPeriod() - curr_time_ms));
 }
-
-/* [] END OF FILE */

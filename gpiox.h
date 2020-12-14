@@ -1,15 +1,3 @@
-/* ========================================
- *
- * Copyright NAFU STUDIOS, 2018
- * All Rights Reserved
- * UNPUBLISHED, LICENSED SOFTWARE.
- *
- * CONFIDENTIAL AND PROPRIETARY INFORMATION
- * WHICH IS THE PROPERTY OF NAFU STUDIOS.
- *
- * ========================================
-*/
-
 #include "project.h"
 
 #define GPIOXA      0
@@ -55,4 +43,3 @@ void gpiox_init(void) {
     gpiox_send(GPIOXA, ADDR_IODIRA, 0, 0);
     gpiox_send(GPIOXB, ADDR_IODIRA, 0, 0);
 }
-/* [] END OF FILE */

@@ -1,14 +1,3 @@
-/* ========================================
- *
- * Copyright NAFU STUDIOS, 2019
- * All Rights Reserved
- * UNPUBLISHED, LICENSED SOFTWARE.
- *
- * CONFIDENTIAL AND PROPRIETARY INFORMATION
- * WHICH IS THE PROPERTY OF NAFU STUDIOS.
- *
- * ========================================
-*/
 #include "physical.h"
 #include "project.h"
 #include "rs485.h"
@@ -97,5 +86,3 @@ void controller_read_grid(uint32_t grid[NUM_ROWS][NUM_COLS]) {
         }
     }
 }
-
-/* [] END OF FILE */
